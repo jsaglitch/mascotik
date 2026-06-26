@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MASCOTIK - App de Mascotas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'mascotik-rose': '#C48A8A', 
+                        'mascotik-teal': '#3D6E79', 
+                        'animal-sand': '#f8f4f2',   
+                        'animal-dark': '#2d3748'    
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .hidden-app { display: none !important; }
+        .modal-enter { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        #splash-screen { transition: opacity 0.8s ease-out; }
+
+        .paw-step { position: absolute; left: 50%; top: 50%; opacity: 0; font-size: 2.5rem; z-index: 5; }
+        @keyframes walkIn {
+            0% { opacity: 0; transform: scale(0.5) rotate(var(--rot)); color: #C48A8A; }
+            30% { opacity: 1; transform: scale(1.1) rotate(var(--rot)); color: #3D6E79; }
+            80% { opacity: 0.1; transform: scale(1) rotate(var(--rot)); color: #C48A8A; }
+            100% { opacity: 0; transform: scale(1) rotate(var(--rot)); }
+        }
+        .paw-1 { margin-left: -50px; margin-top: 150px; --rot: -15deg; animation: walkIn 1.2s 0.1s forwards; }
+        .paw-2 { margin-left:  30px; margin-top:  80px; --rot: 15deg; animation: walkIn 1.2s 0.4s forwards; }
+        .paw-3 { margin-left: -30px; margin-top:  10px; --rot: -10deg; animation: walkIn 1.2s 0.7s forwards; }
+        .paw-4 { margin-left:  40px; margin-top: -60px; --rot: 10deg; animation: walkIn 1.2s 1.0s forwards; }
+        .paw-5 { margin-left: -10px; margin-top:-130px; --rot: -15deg; animation: walkIn 1.2s 1.3s forwards; }
+        .splash-logo-container { opacity: 0; animation: fadeInLogo 1s 1.8s forwards; transform: translateY(20px); z-index: 10; }
+        @keyframes fadeInLogo { to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-200 text-animal-dark font-sans h-[100dvh] w-full flex items-center justify-center selection:bg-mascotik-rose selection:text-white m-0 p-0 overflow-hidden">
+
+    <div id="mobile-frame" class="w-full h-full sm:w-[400px] sm:h-[850px] sm:max-h-[95vh] bg-animal-sand relative overflow-hidden flex flex-col sm:rounded-[3rem] sm:shadow-2xl sm:border-[12px] border-gray-900 mx-auto">
+
+        <div id="splash-screen" class="absolute inset-0 bg-animal-sand z-[100] flex flex-col justify-center items-center overflow-hidden">
+            <i class="fa-solid fa-paw paw-step paw-1"></i>
+            <i class="fa-solid fa-paw paw-step paw-2"></i>
+            <i class="fa-solid fa-paw paw-step paw-3"></i>
+            <i class="fa-solid fa-paw paw-step paw-4"></i>
+            <i class="fa-solid fa-paw paw-step paw-5"></i>
+            
+            <div class="splash-logo-container text-center flex flex-col items-center">
+                <img src="Gemini_Generated_Image_wiffgxwiffgxwiff.png" alt="MASCOTIK Logo" class="h-32 md:h-40 object-contain mb-4" onerror="this.style.display='none'; document.getElementById('splash-backup-logo').classList.remove('hidden-app');">
+                <div id="splash-backup-logo" class="hidden-app text-mascotik-teal text-center">
+                    <i class="fa-solid fa-paw text-5xl mb-3"></i>
+                    <h1 class="text-3xl font-black">MASCOTIK</h1>
+                </div>
+            </div>
+            
+            <button onclick="hideSplashScreen()" class="absolute bottom-10 text-mascotik-teal text-sm font-bold bg-white/60 px-5 py-2 rounded-full backdrop-blur-sm shadow hover:bg-white transition z-20">
+                Saltar Animación <i class="fa-solid fa-angle-right ml-1"></i>
+            </button>
+        </div>
+
+        <div id="main-app" class="h-full w-full flex flex-col hidden-app relative">
+            
+            <header class="bg-white shadow-sm px-5 py-3 flex justify-between items-center z-10 rounded-b-[2rem] shrink-0">
+                <div class="flex items-center gap-3">
+                    <img src="Gemini_Generated_Image_wiffgxwiffgxwiff.png" alt="MASCOTIK Logo" class="h-10 object-contain" onerror="this.style.display='none'; document.getElementById('backup-logo').classList.remove('hidden-app');">
+                    <div id="backup-logo" class="hidden-app flex items-center gap-2">
+                        <i class="fa-solid fa-paw text-mascotik-teal text-xl"></i>
+                        <div><h1 class="font-extrabold text-base leading-tight text-mascotik-rose tracking-wide">MASCOTIK</h1></div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] text-gray-500 font-medium block" id="user-greeting">Invitado</span>
+                    <span class="text-xs font-bold text-mascotik-teal block"><i class="fa-solid fa-star text-amber-400"></i> Puntos: <span id="header-points">0</span></span>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-4 pb-32 relative">
+                <div class="grid grid-cols-2 gap-3 flex-col">
+                    
+                    <button id="menu-pacientes" onclick="openSubmenu('pacientes')" class="col-span-2 bg-cyan-600 text-white p-4 rounded-3xl shadow-sm flex items-center justify-center gap-3 hover:bg-cyan-700 transition hidden-app order-[-3]">
+                        <i class="fa-solid fa-notes-medical text-xl"></i> <span class="font-bold text-sm">Panel de Pacientes</span>
+                    </button>
+                    <button id="menu-clientes" onclick="openSubmenu('clientes')" class="col-span-2 bg-amber-500 text-white p-4 rounded-3xl shadow-sm flex items-center justify-center gap-3 hover:bg-amber-600 transition hidden-app order-[-3]">
+                        <i class="fa-solid fa-users text-xl"></i> <span class="font-bold text-sm">Gestión de Clientes</span>
+                    </button>
+                    <button id="menu-admin" onclick="openSubmenu('admin')" class="col-span-2 bg-slate-800 text-white p-4 rounded-3xl shadow-sm flex items-center justify-center gap-3 hover:bg-slate-900 transition hidden-app order-[-3]">
+                        <i class="fa-solid fa-cogs text-xl"></i> <span class="font-bold text-sm">Panel Administrador</span>
+                    </button>
+
+                    <button onclick="openSubmenu('mi-mascota')" class="bg-white p-4 rounded-3xl shadow-sm border border-mascotik-rose/20 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-mascotik-rose/10 text-mascotik-rose rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-dog"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Mi Mascota</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('evolucion')" class="bg-white p-4 rounded-3xl shadow-sm border border-pink-200 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-pink-50 text-pink-500 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-images"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Evolución</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('aprende')" class="bg-white p-4 rounded-3xl shadow-sm border border-blue-200 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-graduation-cap"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Aprende</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('adopcion')" class="bg-white p-4 rounded-3xl shadow-sm border border-mascotik-teal/20 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-mascotik-teal/10 text-mascotik-teal rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-paw"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Adopción</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('alerta')" class="bg-red-50 p-4 rounded-3xl shadow-sm border border-red-200 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-red-600 px-2 py-1 rounded-bl-xl shadow animate-pulse"><span class="text-white text-[8px] font-black tracking-widest">2 KM</span></div>
+                        <div class="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-tower-broadcast animate-pulse"></i></div>
+                        <h3 class="font-bold text-[10px] text-red-700 uppercase">Alerta</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('policia')" class="bg-red-50 p-4 rounded-3xl shadow-sm border border-red-300 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md hover:bg-red-100 transition relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-red-600 px-2 py-1 rounded-bl-xl shadow animate-pulse"><span class="text-white text-[8px] font-black tracking-widest">SOS</span></div>
+                        <div class="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-lg shadow-inner"><i class="fa-solid fa-shield-dog animate-pulse"></i></div>
+                        <h3 class="font-bold text-[10px] text-red-700 uppercase">Policía</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('perdidos')" class="bg-white p-4 rounded-3xl shadow-sm border border-red-100 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Perdidos</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('encontrados')" class="bg-white p-4 rounded-3xl shadow-sm border border-emerald-200 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-check-double"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Encontrados</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('marketplace')" class="bg-white p-4 rounded-3xl shadow-sm border border-amber-200 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-bone"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Market</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('paseadores')" class="bg-white p-4 rounded-3xl shadow-sm border border-indigo-200 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-lg">
+                            <div class="flex items-baseline justify-center"><i class="fa-solid fa-person-walking-with-dog"></i><i class="fa-solid fa-dog text-[8px] -ml-1 opacity-80"></i></div>
+                        </div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Paseadores</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('campanas')" class="col-span-2 bg-white p-4 rounded-3xl shadow-sm border border-purple-200 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition">
+                        <div class="w-10 h-10 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-check"></i></div>
+                        <h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Campañas</h3>
+                    </button>
+
+                    <button onclick="openSubmenu('vet-amigo')" class="col-span-2 bg-white p-4 rounded-3xl shadow-sm border border-cyan-200 flex items-center text-left gap-3 hover:shadow-md transition group">
+                        <div class="w-10 h-10 bg-cyan-50 text-cyan-500 rounded-full flex items-center justify-center text-lg shrink-0 relative group-hover:bg-cyan-100 transition"><i class="fa-solid fa-user-doctor"></i><i class="fa-solid fa-heart text-mascotik-rose text-[8px] absolute -bottom-1 -right-1 animate-bounce"></i></div>
+                        <div class="flex-1"><h3 class="font-bold text-[10px] text-mascotik-teal uppercase">Veterinario Amigo</h3><p class="text-[9px] text-gray-400">Orientación y Teleconsulta</p></div>
+                    </button>
+                </div>
+            </main>
+
+            <button onclick="openChatbot()" class="absolute bottom-6 left-5 z-40 bg-mascotik-teal text-white w-14 h-14 rounded-full shadow-lg shadow-mascotik-teal/40 flex items-center justify-center text-2xl hover:scale-105 transition">
+                <i class="fa-solid fa-brain"></i>
+            </button>
+            <button onclick="openModal()" class="absolute bottom-6 right-5 z-40 bg-white border border-gray-200 px-4 py-3 rounded-full shadow-lg font-bold text-sm text-mascotik-teal flex items-center gap-2 hover:bg-gray-50 transition">
+                <i class="fa-solid fa-right-to-bracket text-lg"></i> Perfiles
+            </button>
+        </div>
+
+        <div id="modals-container" class="absolute inset-0 bg-animal-dark/60 backdrop-blur-sm z-50 hidden-app flex-col justify-end">
+            <div class="bg-animal-sand w-full h-[85%] rounded-t-[2.5rem] shadow-2xl flex flex-col modal-enter relative">
+                <div class="bg-white px-5 py-4 rounded-t-[2.5rem] flex justify-between items-center border-b border-gray-100 shrink-0">
+                    <h2 id="modal-title" class="font-black text-lg text-mascotik-teal truncate max-w-[70%]">Menú</h2>
+                    <button onclick="closeModal()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="modal-body" class="flex-1 overflow-y-auto p-5"></div>
+            </div>
+        </div>
+
+        <div id="chatbot-container" class="absolute inset-0 bg-animal-dark/60 backdrop-blur-sm z-50 hidden-app flex-col justify-end">
+            <div class="bg-animal-sand w-full h-[85%] rounded-t-[2.5rem] shadow-2xl flex flex-col modal-enter relative overflow-hidden">
+                <div class="bg-mascotik-teal px-5 py-4 rounded-t-[2.5rem] flex justify-between items-center shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-mascotik-teal text-xl shadow-inner"><i class="fa-solid fa-robot"></i></div>
+                        <div><h2 class="font-black text-white text-sm leading-tight">Asistente IA Mascotik</h2><span class="text-[10px] text-teal-100 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> En línea</span></div>
+                    </div>
+                    <button onclick="closeChatbot()" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition shrink-0"><i class="fa-solid fa-chevron-down"></i></button>
+                </div>
+                
+                <div id="chatbot-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[#f8f4f2]">
+                    <div class="flex gap-2 w-full max-w-[85%] animate-[slideUp_0.3s_ease-out]">
+                        <div class="w-8 h-8 rounded-full bg-mascotik-teal flex items-center justify-center text-white text-xs shrink-0 mt-auto shadow"><i class="fa-solid fa-robot"></i></div>
+                        <div class="bg-white p-3 rounded-2xl rounded-bl-none shadow-sm text-xs text-gray-700 leading-relaxed border border-gray-100">Hola, ¿en qué te puedo ayudar? ¿Tienes alguna duda con tu mascota hoy? 🐾</div>
+                    </div>
+                    <div class="flex gap-2 w-full pl-10 animate-[slideUp_0.5s_ease-out]">
+                        <button onclick="sendQuickMessage('Reconocer Trufa 📷')" class="bg-mascotik-rose/10 border border-mascotik-rose/30 text-mascotik-rose px-3 py-1.5 rounded-full text-[10px] font-bold hover:bg-mascotik-rose/20 transition">Reconocer Trufa <i class="fa-solid fa-camera ml-1"></i></button>
+                        <button onclick="sendQuickMessage('Duda Médica 🩺')" class="bg-mascotik-teal/10 border border-mascotik-teal/30 text-mascotik-teal px-3 py-1.5 rounded-full text-[10px] font-bold hover:bg-mascotik-teal/20 transition">Duda Médica <i class="fa-solid fa-stethoscope ml-1"></i></button>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-3 border-t border-gray-200 flex items-center gap-2 shrink-0">
+                    <button class="text-gray-400 hover:text-mascotik-teal transition p-2"><i class="fa-solid fa-paperclip"></i></button>
+                    <input id="chatbot-input" type="text" placeholder="Escribe tu consulta aquí..." class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-mascotik-teal transition" onkeypress="if(event.key === 'Enter') handleSendChat()">
+                    <button onclick="handleSendChat()" class="bg-mascotik-teal text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md hover:bg-teal-700 transition shrink-0"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function hideSplashScreen() {
+            var splash = document.getElementById('splash-screen');
+            var mainApp = document.getElementById('main-app');
+            if (splash && !splash.classList.contains('hidden-app')) {
+                splash.style.opacity = '0';
+                setTimeout(function() {
+                    splash.classList.add('hidden-app');
+                    if (mainApp) mainApp.classList.remove('hidden-app');
+                }, 800);
+            }
+        }
+        setTimeout(hideSplashScreen, 4500);
+
+        var db = {
+            users: {
+                "dueno1": { id: "dueno1", role: "dueño", name: "Usuario Dueño", points: 150, pet: { name: "Bruno", breed: "Bulldog Francés", age: "2 años", color: "Café", photo: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=300", pathology: "Patología respiratoria leve", alarm: "Medicina activa cada 12 horas", lastControl: "10 de Junio, 2026", nextControl: "10 de Julio, 2026", lastClinic: "Clínica Vet San Juan", vaccines: ["Rabia (Al día)", "Parvovirus (Al día)", "Séxtuple (Próxima)"] } },
+                "vet1": { id: "vet1", role: "vet", name: "Dr. Carlos Ruiz", points: 800, patients: [{ name: "Max", breed: "Golden Retriever", age: "4 años", owner: "Lucía M.", phone: "3101112222" }, { name: "Pelusa", breed: "Poodle", age: "1 año", owner: "Andrés P.", phone: "3203334444" }] },
+                "tienda1": { id: "tienda1", role: "tienda", name: "PetShop Central", points: 1200, clients: [{ name: "Ana Gómez", phone: "3110001111", purchases: ["Bulto Purina 15kg", "Juguete mordedor"] }, { name: "Luis Paz", phone: "3122223333", purchases: ["Arena gatos 10kg", "Collar antipulgas"] }] },
+                "admin1": { id: "admin1", role: "admin", name: "Admin General", points: 9999 }
+            },
+            adopciones: [
+                { name: "Luna", type: "Perra Mestiza", age: "1.5 años", size: "Mediano", medical: "Vacunada", points: 250, photo: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300", desc: "Muy juguetona, ama los niños.", contact: "CBA Pasto: 315 123 4567", wa: "573151234567" },
+                { name: "Pelusa", type: "Perra Mestiza", age: "5 meses", size: "Pequeño", medical: "Sana", points: 300, photo: "https://images.unsplash.com/photo-1530281700549-e82e7bc410d6?auto=format&fit=crop&q=80&w=300", desc: "Rescatada. Energía pura, ideal para niños.", contact: "FunRed: 310 987 6543", wa: "573109876543" }
+            ],
+            perdidos: [ 
+                { name: "Max", age: "3 años", desc: "Visto por última vez cerca al Estadio Libertad. Collar azul.", photo: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&q=80&w=300", contact: "Juan: 320 000 1111", wa: "573200001111" } 
+            ],
+            encontrados: [ 
+                { name: "Desconocido", desc: "Gato atigrado encontrado en el Parque Nariño. Muy dócil.", photo: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=300", contact: "María: 311 222 3333", wa: "573112223333" } 
+            ],
+            campanas: [ { id: 1, title: "Jornada Esterilización", date: "Sábado 28 Junio", time: "08:00 AM", loc: "Plaza del Carnaval", desc: "Brigada gratuita para caninos y felinos estratos 1 y 2." }, { id: 2, title: "Vacunación Antirrábica", date: "Domingo 29 Junio", time: "10:00 AM", loc: "U. de Nariño (Sede Torobajo)", desc: "Protege a tu mascota contra la rabia." } ],
+            paseadores: [ 
+                { name: "Carlos López", zone: "Norte / Morasurco / Palermo", phone: "312 000 1111", wa: "573120001111", rate: "$15.000 / hora", verified: true, exp: "3 años" }, 
+                { name: "Laura Martínez", zone: "Centro / San Ignacio", phone: "315 222 3333", wa: "573152223333", rate: "$12.000 / hora", verified: true, exp: "1 año" }, 
+                { name: "Andrés Vallejo", zone: "Sur / Catambuco", phone: "300 444 5555", wa: "573004445555", rate: "$10.000 / hora", verified: false, exp: "6 meses" } 
+            ],
+            vetAmigo: [ { name: "Dr. Carlos Ruiz", clinic: "Clínica Vet San Juan", status: "Disponible Ahora", rating: "4.9", photo: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=150", wa: "573101112222" }, { name: "Dra. Ana López", clinic: "Centro Huellas Sanas", status: "Responde en 1 hr", rating: "4.8", photo: "https://images.unsplash.com/photo-1594824432258-8687abe107fb?auto=format&fit=crop&q=80&w=150", wa: "573203334444" }, { name: "Dr. Mario Vallejo", clinic: "VetCentro Pasto", status: "Orientación Gratuita", rating: "5.0", photo: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150", wa: "573110001111" } ],
+            policia: { title: "Policía Ambiental", phone: "123", direct: "321 456 7890", desc: "Línea de atención inmediata para casos de maltrato animal grave o emergencias vitales." },
+            marketplace: { veterinarias: [{ name: "Clínica Vet San Juan", phone: "315 111 2222", dir: "Calle 18 #24-12", map: "#", serv: "Consultas, Cirugías, Rayos X" }], esteticas: [{ name: "Peluditos Spa", phone: "310 333 4444", dir: "Av. Panamericana #10-50", map: "#", serv: "Baño, Corte de Uñas, Grooming" }], tiendas: [{ name: "PetShop Nariño", phone: "320 555 6666", dir: "Centro Comercial Valle de Atriz", map: "#", serv: "Alimentos, Juguetes, Camas" }], usuarios: [{ name: "Ana (Dueña de Max)", phone: "311 777 8888", item: "Gimnasio rascador para gato 1.5m", price: "$80.000 COP" }] }
+        };
+
+        var currentUser = null;
+
+        function login(roleKey) { 
+            currentUser = db.users[roleKey]; 
+            document.getElementById('user-greeting').innerText = currentUser.role.toUpperCase() + ": " + currentUser.name; 
+            document.getElementById('header-points').innerText = currentUser.points;
+            
+            document.getElementById('menu-pacientes').classList.add('hidden-app');
+            document.getElementById('menu-clientes').classList.add('hidden-app');
+            document.getElementById('menu-admin').classList.add('hidden-app');
+            
+            if(currentUser.role === 'vet') document.getElementById('menu-pacientes').classList.remove('hidden-app');
+            if(currentUser.role === 'tienda') document.getElementById('menu-clientes').classList.remove('hidden-app');
+            if(currentUser.role === 'admin') document.getElementById('menu-admin').classList.remove('hidden-app');
+
+            closeModal(); 
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('user-greeting').innerText = "Invitado";
+            document.getElementById('header-points').innerText = "0";
+            
+            document.getElementById('menu-pacientes').classList.add('hidden-app');
+            document.getElementById('menu-clientes').classList.add('hidden-app');
+            document.getElementById('menu-admin').classList.add('hidden-app');
+            
+            closeModal();
+        }
+
+        function openSubmenu(menuId) {
+            var modalContainer = document.getElementById('modals-container');
+            var modalTitle = document.getElementById('modal-title');
+            var modalBody = document.getElementById('modal-body');
+
+            if (!modalContainer || !modalTitle || !modalBody) return; 
+
+            modalContainer.classList.remove('hidden-app');
+            modalContainer.classList.add('flex');
+            modalBody.innerHTML = ''; 
+
+            if (menuId === 'alerta') {
+                modalTitle.innerText = "Radar Comunitario (2km)";
+                modalBody.innerHTML = `
+                    <div class="bg-orange-50 p-4 rounded-3xl shadow-sm border border-orange-200 text-center mb-5 animate-[slideUp_0.2s_ease-out]">
+                        <h3 class="font-black text-sm text-orange-700"><i class="fa-solid fa-satellite-dish animate-pulse mr-1"></i> Radar Activo en tu zona</h3>
+                        <p class="text-[10px] text-orange-800/80 mt-1 font-medium">Ayuda a tus vecinos. Estas mascotas se perdieron a menos de 2km de tu ubicación actual.</p>
+                    </div>
+                    ` + db.perdidos.map(p => `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-4 animate-[slideUp_0.3s_ease-out]">
+                        <div class="flex justify-between items-center mb-2"><span class="bg-red-100 text-red-600 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest">Se Busca</span><span class="text-[9px] text-gray-400 font-bold"><i class="fa-solid fa-location-dot"></i> A 800m de ti</span></div>
+                        <img src="${p.photo}" class="w-full h-40 object-cover rounded-2xl mb-1 border border-gray-100">
+                        <p class="text-[7px] text-gray-400 text-right mb-2 pr-1">Fuente: Unsplash (Demostración)</p>
+                        <h3 class="font-black text-lg text-mascotik-teal">${p.name}</h3><p class="text-[10px] font-bold text-gray-500 mb-2">Edad aprox: ${p.age}</p><p class="text-[10px] text-gray-600 mb-3 bg-animal-sand p-2 rounded-xl">${p.desc}</p>
+                        
+                        <button onclick="reportarAvistamiento('${p.name}', '${p.wa}')" class="w-full bg-orange-500 text-white py-3 rounded-xl text-sm font-bold shadow-md hover:bg-orange-600 transition flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-location-crosshairs text-lg"></i> ¡Lo vi! Enviar mi Ubicación
+                        </button>
+                    </div>`).join('');
+            }
+            else if (menuId === 'evolucion') {
+                if(!currentUser || currentUser.role !== 'dueño') { 
+                    modalTitle.innerText="Inicia Sesión como Dueño"; 
+                    modalBody.innerHTML=`<div class="text-center py-10"><i class="fa-solid fa-lock text-5xl text-mascotik-rose/30 mb-4"></i><p class="text-gray-500 font-medium text-sm">Cambia tu perfil a "Dueño de Mascota" para registrar su evolución.</p></div>`; return; 
+                }
+                const p = currentUser.pet;
+                modalTitle.innerText = "Evolución de " + p.name;
+                modalBody.innerHTML = `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-pink-100 mb-5 animate-[slideUp_0.2s_ease-out]">
+                        <h3 class="font-bold text-xs text-pink-500 mb-2"><i class="fa-solid fa-pen mr-1"></i> Nueva Actualización</h3>
+                        <textarea placeholder="¿Qué aprendió o cómo creció ${p.name} este mes?" class="w-full bg-animal-sand p-3 rounded-xl text-[10px] outline-none resize-none h-16 mb-2"></textarea>
+                        <div class="flex gap-2 mb-3">
+                            <label class="flex-1 bg-pink-50 text-pink-600 py-2 rounded-xl text-[10px] font-bold text-center cursor-pointer hover:bg-pink-100 transition"><i class="fa-solid fa-image mr-1"></i> Subir Foto<input type="file" accept="image/*" class="hidden"></label>
+                            <label class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-xl text-[10px] font-bold text-center cursor-pointer hover:bg-blue-100 transition"><i class="fa-solid fa-video mr-1"></i> Subir Video<input type="file" accept="video/*" class="hidden"></label>
+                        </div>
+                        <button onclick="alert('Evolución guardada.')" class="w-full bg-pink-500 text-white font-bold py-2 rounded-xl text-[11px] shadow-sm">Publicar en Diario</button>
+                    </div>
+                    <div class="pl-3 border-l-2 border-pink-200 space-y-4 relative animate-[slideUp_0.3s_ease-out]">
+                        <div class="relative">
+                            <div class="absolute -left-[19px] bg-pink-500 w-3 h-3 rounded-full border-2 border-white shadow-sm"></div>
+                            <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 ml-2">
+                                <span class="text-[9px] font-bold text-pink-400 block mb-1">Hace 2 días • Mes 24</span>
+                                <img src="${p.photo}" class="w-full h-24 object-cover rounded-xl mb-1">
+                                <p class="text-[7px] text-gray-400 text-right mb-1 pr-1">Fuente: Unsplash (Demostración)</p>
+                                <p class="text-[10px] text-gray-600 leading-tight">Sigue igual de hermoso y enérgico. ¡Celebramos su cumpleaños número 2 con un pastel de pollo! 🎂🐶</p>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute -left-[19px] bg-gray-300 w-3 h-3 rounded-full border-2 border-white shadow-sm"></div>
+                            <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 ml-2 opacity-80">
+                                <span class="text-[9px] font-bold text-gray-400 block mb-1">Hace 1 mes • Mes 23</span>
+                                <p class="text-[10px] text-gray-600 leading-tight mt-1">Hoy fuimos al veterinario y le pusieron su vacuna. Todo salió perfecto.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            else if (menuId === 'aprende') {
+                modalTitle.innerText = "Aprende con tu mascota";
+                modalBody.innerHTML = `
+                    <div class="space-y-4 animate-[slideUp_0.2s_ease-out]">
+                        <p class="text-[11px] text-gray-500 text-center mb-4 leading-relaxed">Descubre cursos y guías en la web para mejorar el bienestar y la vida de tu mejor amigo.</p>
+                        <button onclick="openSubmenu('educacion')" class="w-full text-left block bg-white p-4 rounded-3xl shadow-sm border border-blue-100 hover:shadow-md transition">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-dog"></i></div>
+                                <div><h4 class="font-bold text-sm text-mascotik-teal">Educación y Entrenamiento</h4><p class="text-[9px] text-gray-400">Presiona para ver escuelas locales y videos</p></div>
+                            </div>
+                            <p class="text-[10px] text-gray-600 mb-3">Aprende a educar en positivo, opciones de escuelas locales en Pasto y videos tutoriales gratuitos.</p>
+                            <div class="text-blue-500 text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-arrow-right"></i> Ver opciones de aprendizaje</div>
+                        </button>
+                        <a href="https://nutricionistadeperros.com/" target="_blank" class="block bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 hover:shadow-md transition">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-carrot"></i></div>
+                                <div><h4 class="font-bold text-sm text-mascotik-teal">Comida Sana y Dietas</h4><p class="text-[9px] text-gray-400">Fuente: Nutricionista de Perros</p></div>
+                            </div>
+                            <p class="text-[10px] text-gray-600 mb-3">Conoce qué alimentos humanos son seguros, ingredientes tóxicos y cómo armar dietas naturales.</p>
+                            <div class="text-emerald-500 text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> Acceder a los cursos</div>
+                        </a>
+                        <a href="https://www.fundacion-affinity.org/perros-gatos-y-personas/busco-una-mascota/cuidados-basicos-de-tu-perro" target="_blank" class="block bg-white p-4 rounded-3xl shadow-sm border border-purple-100 hover:shadow-md transition">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-heart-pulse"></i></div>
+                                <div><h4 class="font-bold text-sm text-mascotik-teal">Cuidados y Bienestar General</h4><p class="text-[9px] text-gray-400">Fuente: Fundación Affinity</p></div>
+                            </div>
+                            <p class="text-[10px] text-gray-600 mb-3">Pautas sobre higiene, prevención de enfermedades, ejercicio adecuado y el lenguaje corporal de tu animal.</p>
+                            <div class="text-purple-500 text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> Acceder al manual</div>
+                        </a>
+                    </div>
+                `;
+            }
+            else if (menuId === 'educacion') {
+                modalTitle.innerText = "Educación Canina";
+                modalBody.innerHTML = `
+                    <button onclick="openSubmenu('aprende')" class="mb-4 text-[10px] text-gray-500 font-bold hover:text-mascotik-teal flex items-center gap-1 transition"><i class="fa-solid fa-arrow-left"></i> Volver a Aprende</button>
+                    <div class="space-y-4 animate-[slideUp_0.2s_ease-out]">
+                        <div class="bg-orange-50 p-3 rounded-2xl border border-orange-200">
+                            <h4 class="font-black text-xs text-orange-700 mb-1"><i class="fa-solid fa-map-pin"></i> Escuelas Locales (Pasto)</h4>
+                            <p class="text-[9px] text-orange-800/80 mb-2">Servicios de adiestramiento profesional presencial.</p>
+                            <div class="bg-white p-3 rounded-xl shadow-sm mb-2 border border-gray-100">
+                                <h5 class="font-bold text-[10px] text-mascotik-teal">MÍS CANINOS</h5>
+                                <p class="text-[8px] text-gray-500 mb-2">Mocondino, Pasto. Escuela de adiestramiento y formación.</p>
+                                <a href="tel:3164061791" class="block text-center bg-orange-500 text-white py-1.5 rounded-lg text-[9px] font-bold shadow-sm hover:bg-orange-600 transition"><i class="fa-solid fa-phone"></i> Llamar: 316 406 1791</a>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-2xl border border-blue-200">
+                            <h4 class="font-black text-xs text-blue-700 mb-2"><i class="fa-solid fa-video"></i> Videos Recomendados Gratuitos</h4>
+                            <div class="space-y-2">
+                                <a href="https://www.youtube.com/watch?v=kYorv8R96pE" target="_blank" class="flex bg-white p-2 rounded-xl shadow-sm border border-gray-100 items-center gap-2 hover:bg-gray-50">
+                                    <div class="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0"><i class="fa-brands fa-youtube"></i></div>
+                                    <div class="flex-1 overflow-hidden"><h5 class="font-bold text-[9px] text-mascotik-teal truncate">Cómo educar a un cachorro desde el primer día</h5><p class="text-[7px] text-gray-400">Canal: Adiestramiento Canino con Eleducador</p></div>
+                                </a>
+                                <a href="https://www.youtube.com/watch?v=F07K_H586jA" target="_blank" class="flex bg-white p-2 rounded-xl shadow-sm border border-gray-100 items-center gap-2 hover:bg-gray-50">
+                                    <div class="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0"><i class="fa-brands fa-youtube"></i></div>
+                                    <div class="flex-1 overflow-hidden"><h5 class="font-bold text-[9px] text-mascotik-teal truncate">5 órdenes básicas que todo perro debe saber</h5><p class="text-[7px] text-gray-400">Canal: ExpertoAnimal</p></div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            else if (menuId === 'adopcion') {
+                modalTitle.innerText = "Adopta un Amigo";
+                modalBody.innerHTML = db.adopciones.map(a => `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-4 animate-[slideUp_0.2s_ease-out]">
+                        <div class="flex justify-between items-center mb-2"><span class="bg-mascotik-teal text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest">${a.type}</span><span class="text-xs font-bold text-amber-500"><i class="fa-solid fa-gift"></i> +${a.points} pts</span></div>
+                        <img src="${a.photo}" class="w-full h-40 object-cover rounded-2xl mb-1 border border-gray-100">
+                        <p class="text-[7px] text-gray-400 text-right mb-2 pr-1">Fuente: Unsplash (Demostración)</p>
+                        <h3 class="font-black text-lg text-mascotik-teal">${a.name}</h3><p class="text-[10px] font-bold text-gray-500 mb-1">Edad: ${a.age} | Tamaño: ${a.size} | Salud: ${a.medical}</p><p class="text-[10px] text-gray-600 mb-3 bg-animal-sand p-2 rounded-xl">${a.desc}</p>
+                        <div class="flex gap-2">
+                            <a href="https://wa.me/${a.wa}?text=Hola,%20estoy%20interesado%20en%20adoptar%20a%20${a.name}%20visto%20en%20Mascotik." target="_blank" class="flex-1 bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-600 transition flex justify-center items-center gap-1"><i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp</a>
+                            <div class="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-[9px] font-bold flex flex-col justify-center text-center border border-gray-200"><span class="text-[7px] text-gray-400 uppercase leading-none">Contacto</span>${a.contact.split(': ')[1]}</div>
+                        </div>
+                    </div>`).join('');
+            }
+            else if (menuId === 'perdidos') {
+                modalTitle.innerText = "Mascotas Perdidas";
+                modalBody.innerHTML = `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-red-100 mb-4 text-center animate-[slideUp_0.2s_ease-out]">
+                        <h4 class="font-bold text-xs text-red-600 mb-1">¿Perdiste a tu compañero?</h4>
+                        <button onclick="alert('Funcionalidad de reporte disponible en la app real.')" class="bg-red-500 text-white font-bold px-4 py-2 rounded-xl text-[10px] shadow">Subir Reporte de Pérdida</button>
+                    </div>
+                ` + db.perdidos.map(p => `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-4 animate-[slideUp_0.3s_ease-out]">
+                        <span class="bg-red-100 text-red-600 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest block w-max mb-2">Se Busca</span>
+                        <img src="${p.photo}" class="w-full h-40 object-cover rounded-2xl mb-1 border border-gray-100">
+                        <p class="text-[7px] text-gray-400 text-right mb-2 pr-1">Fuente: Unsplash (Demostración)</p>
+                        <h3 class="font-black text-base text-mascotik-teal">${p.name}</h3><p class="text-[10px] text-gray-600 mb-3 bg-red-50/50 p-2 rounded-xl border border-red-100/50">${p.desc}</p>
+                        <a href="https://wa.me/${p.wa}?text=Hola,%20tengo%20información%20sobre%20tu%20mascota%20${p.name}" target="_blank" class="w-full bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-600 transition flex justify-center items-center gap-1"><i class="fa-brands fa-whatsapp text-sm"></i> Contactar al Dueño</a>
+                    </div>`).join('');
+            }
+            else if (menuId === 'encontrados') {
+                modalTitle.innerText = "Mascotas Encontradas";
+                modalBody.innerHTML = `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 mb-4 text-center animate-[slideUp_0.2s_ease-out]">
+                        <h4 class="font-bold text-xs text-emerald-600 mb-1">¿Encontraste una mascota en la calle?</h4>
+                        <button onclick="alert('Funcionalidad de reporte disponible en la app real.')" class="bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-[10px] shadow">Reportar Mascota Encontrada</button>
+                    </div>
+                ` + db.encontrados.map(e => `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-4 animate-[slideUp_0.3s_ease-out]">
+                        <span class="bg-emerald-100 text-emerald-600 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest block w-max mb-2">Encontrado / Resguardado</span>
+                        <img src="${e.photo}" class="w-full h-40 object-cover rounded-2xl mb-1 border border-gray-100">
+                        <p class="text-[7px] text-gray-400 text-right mb-2 pr-1">Fuente: Unsplash (Demostración)</p>
+                        <h3 class="font-black text-base text-mascotik-teal">${e.name}</h3><p class="text-[10px] text-gray-600 mb-3 bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50">${e.desc}</p>
+                        <a href="https://wa.me/${e.wa}?text=Hola,%20creo%20conocer%20al%20dueño%20de%20la%20mascota%20encontrada." target="_blank" class="w-full bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-600 transition flex justify-center items-center gap-1"><i class="fa-brands fa-whatsapp text-sm"></i> Contactar a quien Resguardó</a>
+                    </div>`).join('');
+            }
+            else if (menuId === 'campanas') {
+                modalTitle.innerText = "Campañas de Salud";
+                modalBody.innerHTML = db.campanas.map(c => `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-purple-100 mb-4 animate-[slideUp_0.2s_ease-out]">
+                        <div class="flex justify-between items-center mb-2"><span class="bg-purple-100 text-purple-700 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider">${c.date}</span><span class="text-[9px] text-gray-400 font-bold"><i class="fa-solid fa-clock"></i> ${c.time}</span></div>
+                        <h3 class="font-black text-base text-mascotik-teal mb-1">${c.title}</h3>
+                        <p class="text-[10px] text-gray-500 font-bold mb-2"><i class="fa-solid fa-map-location-dot text-purple-500"></i> Lugar: ${c.loc}</p>
+                        <p class="text-[10px] text-gray-600 bg-animal-sand p-2 rounded-xl">${c.desc}</p>
+                        <button onclick="alert('Te has inscrito a la campaña y agendado el recordatorio.')" class="w-full mt-3 bg-purple-600 text-white py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-purple-700 transition"><i class="fa-solid fa-bell"></i> Agendar y Separar Cupo</button>
+                    </div>`).join('');
+            }
+            else if (menuId === 'paseadores') {
+                modalTitle.innerText = "Paseadores Verificados";
+                modalBody.innerHTML = db.paseadores.map(p => `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-4 animate-[slideUp_0.2s_ease-out]">
+                        <div class="flex justify-between items-center mb-2">
+                            ${p.verified ? `<span class="bg-indigo-100 text-indigo-600 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider"><i class="fa-solid fa-user-check"></i> Verificado</span>` : `<span class="bg-gray-100 text-gray-500 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">En evaluación</span>`}
+                            <span class="text-xs font-bold text-indigo-600">${p.rate}</span>
+                        </div>
+                        <h3 class="font-black text-sm text-mascotik-teal">${p.name}</h3>
+                        <p class="text-[10px] text-gray-500 mb-1"><b>Zonas:</b> ${p.zone}</p>
+                        <p class="text-[10px] text-gray-500 mb-3"><b>Experiencia:</b> ${p.exp}</p>
+                        <a href="https://wa.me/${p.wa}?text=Hola%20${p.name},%20vi%20tu%20perfil%20en%20Mascotik%20y%20necesito%20servicio%20de%20paseo." target="_blank" class="w-full bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-600 transition flex justify-center items-center gap-1"><i class="fa-brands fa-whatsapp text-sm"></i> Agendar Paseador</a>
+                    </div>`).join('');
+            }
+            else if (menuId === 'vet-amigo') {
+                modalTitle.innerText = "Veterinario Amigo";
+                modalBody.innerHTML = `
+                    <div class="bg-cyan-50 p-4 rounded-3xl shadow-sm border border-cyan-200 text-center mb-4 animate-[slideUp_0.1s_ease-out]">
+                        <h4 class="font-bold text-xs text-cyan-800">Orientación Profesional Express</h4>
+                        <p class="text-[9px] text-cyan-900/70 mt-1 leading-tight">Consulta con médicos titulados listos para guiarte en primeros auxilios, síntomas menores o dudas de recetas.</p>
+                    </div>
+                ` + db.vetAmigo.map(v => `
+                    <div class="bg-white p-3 rounded-3xl shadow-sm border border-gray-100 mb-3 flex items-center gap-3 animate-[slideUp_0.2s_ease-out]">
+                        <img src="${v.photo}" class="w-14 h-14 object-cover rounded-2xl border border-gray-100 shrink-0">
+                        <div class="flex-1 overflow-hidden">
+                            <div class="flex justify-between items-start"><h4 class="font-black text-xs text-mascotik-teal truncate">${v.name}</h4><span class="text-[9px] text-amber-500 font-bold shrink-0"><i class="fa-solid fa-star"></i> ${v.rating}</span></div>
+                            <p class="text-[9px] text-gray-400 truncate">${v.clinic}</p>
+                            <span class="inline-block bg-emerald-50 text-emerald-600 text-[8px] font-bold px-1.5 py-0.5 rounded mt-1">${v.status}</span>
+                        </div>
+                        <a href="https://wa.me/${v.wa}?text=Hola%20${encodeURIComponent(v.name)},%20vengo%20de%20la%20app%20Mascotik%20y%20necesito%20orientación%20médica." target="_blank" class="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center text-lg shadow hover:bg-emerald-600 transition shrink-0"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>`).join('');
+            }
+            else if (menuId === 'policia') {
+                modalTitle.innerText = "SOS Policía Ambiental";
+                modalBody.innerHTML = `
+                    <div class="bg-red-50 p-5 rounded-3xl border border-red-200 text-center animate-[slideUp_0.2s_ease-out]">
+                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-xl mx-auto mb-3 shadow-inner"><i class="fa-solid fa-shield-dog animate-pulse"></i></div>
+                        <h3 class="font-black text-lg text-red-700">${db.policia.title}</h3>
+                        <p class="text-[11px] text-red-900/80 my-3 font-medium leading-relaxed">${db.policia.desc}</p>
+                        <div class="space-y-2 mt-4">
+                            <a href="tel:${db.policia.phone}" class="block w-full bg-red-600 text-white font-bold py-3 rounded-xl text-sm shadow-md hover:bg-red-700 transition flex justify-center items-center gap-2"><i class="fa-solid fa-phone"></i> Marcar Línea Nacional (${db.policia.phone})</a>
+                            <a href="tel:${db.policia.direct.replace(/ /g,'')}" class="block w-full bg-white text-red-600 border border-red-300 font-bold py-3 rounded-xl text-xs shadow-sm hover:bg-red-50 transition flex justify-center items-center gap-2"><i class="fa-solid fa-mobile-screen"></i> Teléfono Directo Pasto: ${db.policia.direct}</a>
+                        </div>
+                    </div>
+                `;
+            }
+            else if (menuId === 'mi-mascota') {
+                if(!currentUser || currentUser.role !== 'dueño') { 
+                    modalTitle.innerText="Identifícate como Dueño"; 
+                    modalBody.innerHTML=`<div class="text-center py-10"><i class="fa-solid fa-lock text-5xl text-mascotik-rose/30 mb-4"></i><p class="text-gray-500 font-medium text-sm">Por favor abre el menú "Perfiles" abajo a la derecha y selecciona "Dueño de Mascota" para simular este espacio dinámico.</p></div>`; return; 
+                }
+                const p = currentUser.pet;
+                modalTitle.innerText = "Ficha de " + p.name;
+                modalBody.innerHTML = `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-mascotik-rose/20 text-center mb-4 animate-[slideUp_0.2s_ease-out]">
+                        <img src="${p.photo}" class="w-24 h-24 object-cover rounded-full mx-auto border-4 border-mascotik-rose shadow-md mb-2">
+                        <p class="text-[7px] text-gray-400 mb-1">Fuente: Unsplash (Demostración)</p>
+                        <h3 class="font-black text-xl text-mascotik-teal leading-none">${p.name}</h3>
+                        <span class="text-[10px] bg-mascotik-rose/10 text-mascotik-rose font-bold px-2 py-0.5 rounded-full inline-block mt-1">${p.breed} • ${p.age}</span>
+                        
+                        <div class="grid grid-cols-2 gap-2 mt-4 text-left">
+                            <div class="bg-animal-sand p-2.5 rounded-xl"><span class="text-[8px] text-gray-400 block uppercase font-black">Color</span><span class="text-[10px] font-bold text-gray-700">${p.color}</span></div>
+                            <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200/40"><span class="text-[8px] text-amber-600 block uppercase font-black"><i class="fa-solid fa-triangle-exclamation"></i> Diagnóstico</span><span class="text-[9px] font-bold text-amber-900 leading-tight block">${p.pathology}</span></div>
+                            <div class="col-span-2 bg-red-50 p-2.5 rounded-xl border border-red-200/40 flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-red-500 text-lg animate-pulse"></i>
+                                <div><span class="text-[8px] text-red-600 block uppercase font-black">Alarma Médica</span><span class="text-[10px] font-bold text-red-900">${p.alarm}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-4">
+                        <h4 class="font-black text-xs text-mascotik-teal mb-2"><i class="fa-solid fa-stethoscope"></i> Controles Clínicos</h4>
+                        <p class="text-[10px] text-gray-600 mb-1"><b>Último control:</b> ${p.lastControl} (${p.lastClinic})</p>
+                        <p class="text-[10px] text-mascotik-teal font-bold"><b>Próximo control:</b> ${p.nextControl}</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
+                        <h4 class="font-black text-xs text-mascotik-teal mb-2"><i class="fa-solid fa-syringe"></i> Carnet de Vacunación</h4>
+                        <div class="space-y-1.5">${p.vaccines.map(v => `<div class="flex items-center gap-2 text-[10px] text-gray-600"><i class="fa-solid ${v.includes('Al día')?'fa-circle-check text-emerald-500':'fa-circle-dot text-amber-500'}"></i> ${v}</div>`).join('')}</div>
+                    </div>
+                `;
+            }
+            else if (menuId === 'marketplace') {
+                modalTitle.innerText = "Pet Market Pasto";
+                modalBody.innerHTML = `
+                    <div class="space-y-4 animate-[slideUp_0.2s_ease-out]">
+                        <div>
+                            <h4 class="font-black text-xs text-mascotik-teal mb-2 border-b border-gray-100 pb-1"><i class="fa-solid fa-hospital"></i> Clínicas Veterinarias</h4>
+                            ${db.marketplace.veterinarias.map(v => `
+                                <div class="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm text-[10px]">
+                                    <h5 class="font-bold text-gray-800">${v.name}</h5><p class="text-gray-500">Dir: ${v.dir} | Serv: ${v.serv}</p>
+                                    <a href="tel:${v.phone.replace(/ /g,'')}" class="mt-2 inline-block bg-cyan-600 text-white text-[9px] px-2 py-1 rounded font-bold">Llamar ${v.phone}</a>
+                                </div>`).join('')}
+                        </div>
+                        <div>
+                            <h4 class="font-black text-xs text-mascotik-teal mb-2 border-b border-gray-100 pb-1"><i class="fa-solid fa-scissors"></i> Estéticas y Peluquerías</h4>
+                            ${db.marketplace.esteticas.map(e => `
+                                <div class="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm text-[10px]">
+                                    <h5 class="font-bold text-gray-800">${e.name}</h5><p class="text-gray-500">Dir: ${e.dir} | Serv: ${e.serv}</p>
+                                    <a href="tel:${e.phone.replace(/ /g,'')}" class="mt-2 inline-block bg-pink-600 text-white text-[9px] px-2 py-1 rounded font-bold">Llamar ${e.phone}</a>
+                                </div>`).join('')}
+                        </div>
+                        <div>
+                            <h4 class="font-black text-xs text-mascotik-teal mb-2 border-b border-gray-100 pb-1"><i class="fa-solid fa-store"></i> Tiendas de Accesorios / Alimento</h4>
+                            ${db.marketplace.tiendas.map(t => `
+                                <div class="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm text-[10px]">
+                                    <h5 class="font-bold text-gray-800">${t.name}</h5><p class="text-gray-500">Dir: ${t.dir} | Oferta: ${t.serv}</p>
+                                    <a href="tel:${t.phone.replace(/ /g,'')}" class="mt-2 inline-block bg-amber-500 text-white text-[9px] px-2 py-1 rounded font-bold">Llamar ${t.phone}</a>
+                                </div>`).join('')}
+                        </div>
+                        <div>
+                            <h4 class="font-black text-xs text-mascotik-teal mb-2 border-b border-gray-100 pb-1"><i class="fa-solid fa-handshake"></i> Ventas de Segundamano (Usuarios)</h4>
+                            ${db.marketplace.usuarios.map(u => `
+                                <div class="bg-white p-3 rounded-2xl border border-red-100 bg-red-50/20 shadow-sm text-[10px] flex justify-between items-center">
+                                    <div><h5 class="font-bold text-gray-800">${u.item}</h5><p class="text-gray-400">Vendedor: ${u.name}</p><p class="text-mascotik-rose font-bold">${u.price}</p></div>
+                                    <a href="https://wa.me/57${u.phone.replace(/ /g,'')}?text=Hola,%20me%20interesa%20el%20artículo%20${encodeURIComponent(u.item)}" target="_blank" class="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-base shadow"><i class="fa-brands fa-whatsapp"></i></a>
+                                </div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            else if (menuId === 'pacientes') {
+                modalTitle.innerText = "Panel: Dr. Carlos Ruiz";
+                modalBody.innerHTML = `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-cyan-100 mb-4 text-[11px]">
+                        <h4 class="font-bold text-cyan-700 mb-2"><i class="fa-solid fa-notes-medical"></i> Pacientes Asignados</h4>
+                        <div class="space-y-2">
+                            ${db.users.vet1.patients.map(p => `
+                                <div class="bg-animal-sand p-3 rounded-xl">
+                                    <h5 class="font-black text-mascotik-teal">${p.name} (${p.breed})</h5>
+                                    <p class="text-[10px] text-gray-500">Edad: ${p.age} | Dueño: ${p.owner}</p>
+                                    <a href="tel:${p.phone}" class="text-cyan-600 font-bold block mt-1 text-[9px]"><i class="fa-solid fa-phone"></i> Llamar dueño (${p.phone})</a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            else if (menuId === 'clientes') {
+                modalTitle.innerText = "Clientes: PetShop Central";
+                modalBody.innerHTML = `
+                    <div class="bg-white p-4 rounded-3xl shadow-sm border border-amber-100 mb-4 text-[11px]">
+                        <h4 class="font-bold text-amber-700 mb-2"><i class="fa-solid fa-users"></i> Historial de Compras</h4>
+                        <div class="space-y-2">
+                            ${db.users.tienda1.clients.map(c => `
+                                <div class="bg-animal-sand p-3 rounded-xl">
+                                    <h5 class="font-black text-mascotik-teal">${c.name}</h5>
+                                    <p class="text-[9px] text-gray-500 mb-1">Tel: ${c.phone}</p>
+                                    <div class="text-[9px] text-gray-600 font-medium"><b>Últimos artículos:</b> ${c.purchases.join(', ')}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            else if (menuId === 'admin') {
+                modalTitle.innerText = "Consola Administrador";
+                modalBody.innerHTML = `
+                    <div class="bg-slate-800 text-white p-4 rounded-3xl shadow-sm space-y-3 text-xs">
+                        <p><i class="fa-solid fa-chart-line text-emerald-400"></i> <b>Usuarios Activos en Pasto:</b> 1,240</p>
+                        <p><i class="fa-solid fa-triangle-exclamation text-red-400"></i> <b>Alertas SOS de hoy:</b> 2 activas</p>
+                        <p><i class="fa-solid fa-shield text-cyan-400"></i> <b>Paseadores verificados:</b> 2</p>
+                        <button onclick="alert('Descargando logs analíticos...')" class="w-full bg-slate-700 text-center py-2 rounded-xl text-[10px] font-bold border border-slate-600 hover:bg-slate-600">Descargar Reporte del Sistema (.csv)</button>
+                    </div>
+                `;
+            }
+            else if (menuId === 'pacientes' || menuId === 'clientes' || menuId === 'admin') {}
+            else {
+                modalTitle.innerText = "Mascotik App";
+                modalBody.innerHTML = `<p class="text-center text-xs text-gray-400 py-10">Módulo en construcción.</p>`;
+            }
+        }
+
+        function reportarAvistamiento(name, wa) {
+            alert('Simulación: Se ha tomado tu geolocalización GPS actual.');
+            window.open(`https://wa.me/${wa}?text=Hola,%20acabo%20de%20ver%20a%20tu%20mascota%20${name}%20cerca%20de%20mi%20ubicación%20actual.%20¡Espero%20que%20lo%20encuentres!`, '_blank');
+        }
+
+        function openModal() {
+            var modalContainer = document.getElementById('modals-container');
+            var modalTitle = document.getElementById('modal-title');
+            var modalBody = document.getElementById('modal-body');
+            if(!modalContainer || !modalTitle || !modalBody) return;
+
+            modalContainer.classList.remove('hidden-app');
+            modalContainer.classList.add('flex');
+            modalTitle.innerText = "Cambiar de Perfil (Simulador)";
+            modalBody.innerHTML = `
+                <div class="space-y-3 animate-[slideUp_0.2s_ease-out]">
+                    <button onclick="login('dueno1')" class="w-full bg-white border border-mascotik-rose p-3 rounded-2xl font-bold text-sm text-mascotik-rose shadow-sm flex items-center justify-center gap-2 hover:bg-mascotik-rose hover:text-white transition"><i class="fa-solid fa-user"></i> Dueño de Mascota</button>
+                    <button onclick="login('vet1')" class="w-full bg-white border border-cyan-500 p-3 rounded-2xl font-bold text-sm text-cyan-600 shadow-sm flex items-center justify-center gap-2 hover:bg-cyan-500 hover:text-white transition"><i class="fa-solid fa-user-doctor"></i> Médico Veterinario</button>
+                    <button onclick="login('tienda1')" class="w-full bg-white border border-amber-500 p-3 rounded-2xl font-bold text-sm text-amber-600 shadow-sm flex items-center justify-center gap-2 hover:bg-amber-500 hover:text-white transition"><i class="fa-solid fa-store"></i> Tienda Pet</button>
+                    <button onclick="login('admin1')" class="w-full bg-slate-800 border border-slate-900 p-3 rounded-2xl font-bold text-sm text-white shadow-sm flex items-center justify-center gap-2 hover:bg-slate-900 transition"><i class="fa-solid fa-cogs"></i> Administrador</button>
+                    <div class="pt-4 border-t border-gray-100">
+                        <button onclick="logout()" class="w-full bg-gray-100 p-2.5 rounded-xl text-xs font-bold text-gray-500 text-center hover:bg-gray-200 transition">Cerrar Sesión Activa / Volver a Invitado</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function closeModal() {
+            var modalContainer = document.getElementById('modals-container');
+            if (modalContainer) {
+                modalContainer.classList.add('hidden-app');
+                modalContainer.classList.remove('flex');
+            }
+        }
+
+        function openChatbot() {
+            var chat = document.getElementById('chatbot-container');
+            if (chat) {
+                chat.classList.remove('hidden-app');
+                chat.classList.add('flex');
+            }
+        }
+
+        function closeChatbot() {
+            var chat = document.getElementById('chatbot-container');
+            if (chat) {
+                chat.classList.add('hidden-app');
+                chat.classList.remove('flex');
+            }
+        }
+
+        function handleSendChat() {
+            var input = document.getElementById('chatbot-input');
+            if (!input || !input.value.trim()) return;
+            
+            var userText = input.value.trim();
+            appendChatMessage('user', userText);
+            input.value = '';
+            
+            setTimeout(function() {
+                var response = "¡Entendido! Como tu asistente inteligente de Mascotik, te recomiendo que revises la sección de 'Aprende' o contactes a un experto si es un síntoma inusual. ¿Te gustaría saber algo específico sobre cuidados o alimentación? 🐾";
+                
+                var lower = userText.toLowerCase();
+                if(lower.includes('trufa') || lower.includes('camara') || lower.includes('reconocer')) {
+                    response = "Iniciando escáner de reconocimiento biométrico de trufa... 📸 Analizando pliegues nasales. Recuerda tomar la foto con buena luz natural para verificar la identidad única de tu mascota.";
+                } else if(lower.includes('medica') || lower.includes('enfermo') || lower.includes('vomito') || lower.includes('duele')) {
+                    response = "He detectado una consulta con palabras de alerta médica. Te recomiendo ingresar inmediatamente al módulo <b>'Veterinario Amigo'</b> de la app para contactar express por WhatsApp a un médico titulado en Pasto.";
+                }
+                
+                appendChatMessage('bot', response);
+            }, 800);
+        }
+
+        function sendQuickMessage(text) {
+            appendChatMessage('user', text);
+            setTimeout(function() {
+                var response = "";
+                if(text.includes('Trufa')) {
+                    response = "Abriendo cámara integrada para escaneo biométrico de trufa nasal... 📸 Por favor, enfoca la nariz de tu perro a una distancia de 10cm. Esto servirá como huella dactilar digital de seguridad.";
+                } else {
+                    response = "Accediendo a la base de datos de primeros auxilios y sintomatología clínica básica... 🩺 Si tu mascota presenta decaimiento prolongado, no dudes en pulsar el menú de **Veterinario Amigo**.";
+                }
+                appendChatMessage('bot', response);
+            }, 600);
+        }
+
+        function appendChatMessage(sender, text) {
+            var container = document.getElementById('chatbot-messages');
+            if (!container) return;
+            
+            var msgDiv = document.createElement('div');
+            if (sender === 'user') {
+                msgDiv.className = "flex gap-2 w-full max-w-[85%] ml-auto justify-end animate-[slideUp_0.2s_ease-out]";
+                msgDiv.innerHTML = `
+                    <div class="bg-mascotik-teal text-white p-3 rounded-2xl rounded-br-none shadow-sm text-xs leading-relaxed">${text}</div>
+                `;
+            } else {
+                msgDiv.className = "flex gap-2 w-full max-w-[85%] animate-[slideUp_0.2s_ease-out]";
+                msgDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-mascotik-teal flex items-center justify-center text-white text-xs shrink-0 mt-auto shadow"><i class="fa-solid fa-robot"></i></div>
+                    <div class="bg-white p-3 rounded-2xl rounded-bl-none shadow-sm text-xs text-gray-700 leading-relaxed border border-gray-100">${text}</div>
+                `;
+            }
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+</html>
